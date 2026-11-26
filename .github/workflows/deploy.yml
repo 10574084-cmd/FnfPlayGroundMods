@@ -1,0 +1,69 @@
+name: Build and deploy FNF Psych Playground
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Rebuild the HTML from compressed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cat .site-source/part-*.b64 | tr -d '\n\r ' | base64 --decode | gzip --decompress > dist/index.html
+          test -s dist/index.html
+          echo "HTML size: $(wc -c < dist/index.html) bytes"
+          echo "328572b704822f6c847a5ed6115996f5b8c90c06d7104ab8fbb38c4562d506e8  dist/index.html" | sha256sum --check
+
+      - name: Validate HTML and JavaScript
+        shell: bash
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+
+          html = Path("dist/index.html").read_text(encoding="utf-8")
+          class CheckHTML(HTMLParser):
+              pass
+          CheckHTML().feed(html)
+
+          assert "FNF Psych Playground v12" in html
+          assert "player2" in html.lower()
+          scripts = re.findall(r"<script>([\\s\\S]*?)</script>", html, re.I)
+          assert scripts, "No inline application script found"
+          Path("/tmp/playground-inline.js").write_text(scripts[-1], encoding="utf-8")
+          print("HTML structure OK; app script extracted.")
+          PY
+          node --check /tmp/playground-inline.js
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
