@@ -35,7 +35,7 @@ jobs:
           cat .site-source/part-*.b64 | tr -d '\n\r ' | base64 --decode | gzip --decompress > dist/index.html
           test -s dist/index.html
           echo "HTML size: $(wc -c < dist/index.html) bytes"
-          echo "328572b704822f6c847a5ed6115996f5b8c90c06d7104ab8fbb38c4562d506e8  dist/index.html" | sha256sum --check
+          echo "0fa6285fd88d45866faafa044c65afed794c7f10ea88d1029b5064cc2c94d6d8  dist/index.html" | sha256sum --check
 
       - name: Validate HTML and JavaScript
         shell: bash
@@ -50,8 +50,8 @@ jobs:
               pass
           CheckHTML().feed(html)
 
-          assert "FNF Psych Playground v12" in html
-          assert "player2" in html.lower()
+          assert "FNF Psych Playground v13" in html
+          assert "chromaticPlayers" in html and "controlsP2" in html
           scripts = re.findall(r"<script>(.*?)</script>", html, re.S | re.I)
           assert scripts, "No inline application script found"
           Path("/tmp/playground-inline.js").write_text(scripts[-1], encoding="utf-8")
