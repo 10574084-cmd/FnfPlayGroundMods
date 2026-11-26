@@ -52,7 +52,7 @@ jobs:
 
           assert "FNF Psych Playground v12" in html
           assert "player2" in html.lower()
-          scripts = re.findall(r"<script>([\\s\\S]*?)</script>", html, re.I)
+          scripts = re.findall(r"<script>(.*?)</script>", html, re.S | re.I)
           assert scripts, "No inline application script found"
           Path("/tmp/playground-inline.js").write_text(scripts[-1], encoding="utf-8")
           print("HTML structure OK; app script extracted.")
